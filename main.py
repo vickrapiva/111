@@ -1,49 +1,56 @@
 import tkinter as tk
+from math import hypot
 
-def resize_oval(event):
+class MainWindow(tk.Tk
+):
+    """Главное окно приложения, наследуемое от Tk"""
+    
+    def __init__(self):
+        super().__init__()
+        self.title("точка")
+        self.geometry('1000x1000')
 
-    w, h = event.width, event.height
+        self.ovals = {}
 
-    oval_w = 15
-    oval_h = 15
-    otstup = 50
+        self.canvas = tk.Canvas(self, bg='white', highlightthickness=0)
+        self.draw_oval(ox=250, oy=250, r=50)
+        self.canvas.bind("<Button-1>", self.on_mouse_down)      # Нажатие ЛКМ
+        self.canvas.bind("<B1-Motion>", self.on_mouse_move)     # Движение с зажатой ЛКМ
+        self.canvas.bind("<ButtonRelease-1>", self.on_mouse_up) # Отпускание ЛКМ
+        self.canvas.pack(fill=tk.BOTH, expand=True)
 
-    x0 = otstup
-    x1 = otstup + oval_w
+        self.select_oval_id = None
+        self.draw_line_id = None
 
-    y0 = (h - oval_h) // 2
-    y1 = (h + oval_h) // 2
+    def draw_oval(self, ox, oy, r, fill='black', outline='black'):
+        oval_id = self.canvas.create_oval(ox-r, oy-r, ox+r, oy+r, fill=fill, outline=outline)
+        self.ovals[oval_id] = {
+            'ox': ox,
+            'oy': oy,
+            'r': r,
+        }
 
-    canvas.coords(oval, x0, y0, x1, y1)
+    def on_mouse_down(self, event):
+        items = self.canvas.find_closest(event.x, event.y)
+        if not items:
+            return
+        oval_id = items[0]
+        oval = self.ovals[oval_id]
+        l = hypot(oval['ox'] - event.x, oval['oy'] - event.y)
+        if l <= oval['r']:
+            self.select_oval_id = oval_id
+            self.canvas.itemconfig(oval_id, fill='red')
+            self.draw_line_id = self.canvas.create_line(oval['ox'], oval['oy'], event.x, event.y)
 
+    def on_mouse_up(self, event):
+        if self.select_oval_id:
+            self.canvas.itemconfig(self.select_oval_id, fill='black')
+            self.select_oval_id = None
+            self.draw_line_id = None
 
-root = tk.Tk()
-root.title("точка")
-root.state('zoomed')
+    def on_mouse_move(self, event):
+        if self.select_oval_id and self.draw_line_id:
+            oval = self.ovals[self.select_oval_id]
+            self.canvas.coords(self.draw_line_id, oval['ox'], oval['oy'], event.x, event.y)
 
-canvas = tk.Canvas(root, bg='white', highlightthickness=0)
-canvas.pack(fill=tk.BOTH, expand=True)
-
-oval = canvas.create_oval(1, 1, 1, 1, fill='black', outline='black', tags = 'krug')
-
-def linia():
-
-
-def click():
-    canvas.itemconfig(oval, fill='red')
-    Line = canvas.create_line(1, 1, 200, 50, tags= "jopa")
-
-
-def unclick():
-    canvas.itemconfig(oval, fill = 'black')
-    canvas.delete("jopa")
-
-
-# vfi
-canvas.bind("<Configure>", resize_oval)
-
-canvas.tag_bind(oval, "<ButtonPress-1>", click)
-
-canvas.tag_bind(oval, "<ButtonRelease-1>", unclick)
-
-root.mainloop()
+MainWindow().mainloop()
